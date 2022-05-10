@@ -750,7 +750,7 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
             listassign.getBinding("items").filter(filters, "Appliation");
         },
         onLogout: function() {
-            //// -------- logout Service call ---------------//////
+            ///// -------- logout Service call ---------------//////
             MessageBox.warning(this.getView().getModel("i18n").getProperty("logoutConfirm"), {
                 icon: MessageBox.Icon.WARNING,
                 title: "Confirmation",

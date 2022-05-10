@@ -23,7 +23,7 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
         },
         onRouteMatched: function() {
             var that = this;
-            /////------------ Get User Info(Scopes) -------///////////
+            /////------------ Get User Info(Scopes) -------/////////// 
             var userModel = new JSONModel();
             $.ajax({
                 method: "GET",

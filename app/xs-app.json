@@ -1,0 +1,29 @@
+{
+    "welcomeFile": "index.html",
+    "authenticationMethod": "route",
+    "logout": {
+        "logoutEndpoint": "/my/logout",
+        "logoutPage": "/index.html"
+      },
+    "routes": [
+        { 
+            "source": "^/srv/(.*)$", 
+            "authenticationType": "xsuaa",
+            "scope": "uaa.user", 
+            "destination": "srv" 
+        },
+        {
+            "source": "/logout.html",
+            "localDir": "resources",
+            "authenticationType": "none",
+            "cacheControl": "no-cache, no-store, must-revalidate"
+        },
+        {
+            "source": "^/(.*)",
+            "authenticationType": "xsuaa",
+            "localDir": "resources",
+            "cacheControl": "no-cache, no-store, must-revalidate"
+        }
+        
+    ]
+}

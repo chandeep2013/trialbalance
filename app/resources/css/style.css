@@ -1,0 +1,15 @@
+/* Enter your custom styles here */
+.sapUiCompFilterBarNonPhone .sapMIBar>.sapMBarChild:last-child {
+    display: none !important;
+}
+/*.sapUiSizeCompact .sapMPageHeader .sapMIBar .sapMBarLeft, .sapUiSizeCompact .sapMPageFooter .sapMIBar .sapMBarLeft, .sapUiSizeCompact .sapMPageHeader .sapMIBar .sapMBarRight, .sapUiSizeCompact .sapMPageFooter .sapMIBar .sapMBarRight, .sapUiSizeCompact .sapMPageHeader .sapMIBar .sapMBarPH, .sapUiSizeCompact .sapMPageFooter .sapMIBar .sapMBarPH {
+    margin-left: 40% !important;
+}*/
+
+.sapMBarTitleAlignAuto .sapMBarPH {
+    justify-content: center !important;
+}
+
+.sapUiSizeCompact .sapMSF {
+    min-width: 22rem !important;
+}

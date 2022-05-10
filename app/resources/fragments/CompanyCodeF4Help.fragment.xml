@@ -1,0 +1,35 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core">
+	<Dialog title="{i18n>companyCode}" class="sapUiSizeCompact" afterClose="onAfterCloseF4Help" contentWidth="25rem" contentHeight="50%" >
+		<HeaderContainer>
+			<SearchField id="idSearchCompanyCode" search="OnSearchComapanyCode" width="21rem" liveChange="OnSearchComapanyCode"></SearchField>
+		</HeaderContainer>
+		<Table id="idF4HelpCompanyCodeTable" sticky="ColumnHeaders" items="{ParamData>/CompanyCode}" mode="MultiSelect"
+        growing="true" growingThreshold="50" growingScrollToLoad="true">
+			<columns>
+				<Column>
+					<Text text="{i18n>key}" />
+				</Column>
+				<Column>
+					<Text text="{i18n>text}" />
+				</Column>
+			</columns>
+			<items>
+				<ColumnListItem vAlign="Middle">
+					<cells>
+						<Text
+						text="{ parts: [ {path: 'ParamData>CompanyCode'}], formatter: '.formatter.LedgerKey' }" />
+						<Text text="{ parts: [ {path: 'ParamData>CompanyCode'}, {path: 'ParamData>CompanyCodeText'}], formatter: '.formatter.CompanyCodeText' }"/>
+					</cells>
+				</ColumnListItem>
+			</items>
+		</Table>
+		<beginButton>
+			<Button  text="{i18n>ok}" type="Emphasized" press="onCompanyCodeF4HelpSelect"/>
+		</beginButton>
+		<endButton>
+			<Button text="{i18n>cancel}" type="Reject" press="onCompanyCodeCancel"/>
+		</endButton>
+	</Dialog>
+</core:FragmentDefinition>

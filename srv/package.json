@@ -1,0 +1,25 @@
+{
+    "name": "saastrialbalanceapp-srv",
+    "engines": {
+        "node": "14.x"
+    },
+    "dependencies": {
+        "@sap-cloud-sdk/core": "^1.54.0",
+        "@sap/hdbext": "^7.6.3",
+        "@sap/xsenv": "latest",
+        "@sap/xssec": "latest",
+        "axios": "^0.26.1",
+        "body-parser": "latest",
+        "cfenv": "latest",
+        "commander": "^9.0.0",
+        "express": "latest",
+        "jsonwebtoken": "^8.5.1",
+        "node-localstorage": "^2.2.1",
+        "passport": "latest",
+        "sap-cf-axios": "^0.2.35",
+        "util": "^0.12.4"
+    },
+    "scripts": {
+        "start": "node server.js"
+    }
+}

@@ -1,0 +1,131 @@
+<mvc:View
+    controllerName="com.tr.trialbalance.controller.OTP"
+	xmlns:mvc="sap.ui.core.mvc"
+    displayBlock="true"
+	xmlns="sap.m"
+	xmlns:fb="sap.ui.comp.filterbar"
+	xmlns:ui="sap.ui.table"
+    xmlns:core="sap.ui.core">
+    <Shell appWidthLimited="false">
+	<App id="app">
+		<pages>
+			<Page id="idTrialbalancePage" class="sapUiSizeCompact" title="{i18n>title}">
+				<customHeader>
+					<Bar>
+						<contentMiddle >
+							<Title text="{i18n>title}" ></Title>
+						</contentMiddle>
+                        <contentRight>
+		                    <Button icon="sap-icon://log" tooltip="logout" press="onLogout"/>
+		                </contentRight>	
+					</Bar>
+				</customHeader>
+				<content>
+                <!-- ################################# Selection Fileds Start#############################-->
+					<fb:FilterBar clear="onClear" search="onLoadData" showClearButton="true" showClearOnFB="true">
+							<fb:filterGroupItems>
+								<fb:FilterGroupItem id="idLedger" visibleInFilterBar="true" groupName="Ledger" groupTitle="{i18n>ledger}" name="Ledger" label="Ledger">
+									<fb:control>
+										<Input id="idSelectedLedger" showValueHelp = "true" placeholder="{i18n>ledger}" showSuggestion= "true" valueHelpOnly="true" valueHelpRequest="onValueHelpRequestLedger"></Input>
+									</fb:control>
+								</fb:FilterGroupItem>
+								<fb:FilterGroupItem id="idCompanyCode" visibleInFilterBar="true" groupName="CompanyCode" groupTitle="{i18n>companyCode}" name="Company Code"
+								label="Company Code">
+									<fb:control>
+										<MultiInput id="idSelectedComapnyCode" placeholder="{i18n>companyCode}" valueHelpRequest="onValueHelpRequestCompanyCode"></MultiInput>
+									</fb:control>
+								</fb:FilterGroupItem>
+								<fb:FilterGroupItem id="idPostedDateFrom" visibleInFilterBar="true" groupName="PostedDateFrom" groupTitle="{i18n>postedDateFrom}" name="Posting Date From"
+								label="Posting Date From">
+									<fb:control>
+										<DatePicker id="fromDate" displayFormat="dd/MM/yyyy" valueFormat="yyyy-MM-dd"/>
+									</fb:control>
+								</fb:FilterGroupItem>
+								<fb:FilterGroupItem id="idPostedDateTo" visibleInFilterBar="true" groupName="PostedDateTo" groupTitle="{i18n>postedDateTo}" name="Posting Date To"
+								label="Posting Date To">
+									<fb:control>
+										<DatePicker id="toDate" displayFormat="dd/MM/yyyy" valueFormat="yyyy-MM-dd"/>
+									</fb:control>
+								</fb:FilterGroupItem>
+							</fb:filterGroupItems>
+						</fb:FilterBar>
+                        <!-- ################################# Selection Fileds End #############################-->
+                        <!-- ################################# Trial balance data #############################-->
+                        <MessageStrip id="idMessageStrip" text="{i18n>messageStrip}" type="Warning" showIcon="true"
+				                    showCloseButton="true" class="sapUiMediumMarginBottom" visible="false"></MessageStrip>
+					<ui:Table id="idTrialbalanceTable" rows="{oModelData>/results}" selectionMode="Single" visibleRowCount="10" ariaLabelledBy="title">
+							<ui:extension>
+								<OverflowToolbar style="Clear">
+									<Title id="idTrailBalanceDataCount" text="{i18n>records}"/>
+									<ToolbarSpacer/>
+                                    <Button id="idLoadMoreButton" text="{i18n>loadMore}" press="onLoadData" visible="false"></Button>
+								</OverflowToolbar>
+							</ui:extension>
+							<ui:columns>
+								<ui:Column width="11rem">
+									<Label text="{i18n>companyCode}" />
+									<ui:template>
+										<Text text="{oModelData>CompanyCode} - {oModelData>CompanyCodeCurrency}" wrapping="false" />
+									</ui:template>
+								</ui:Column>
+								<ui:Column width="11rem">
+									<Label text="{i18n>glAccount}" />
+									<ui:template>
+										<Text text="{oModelData>GLAccount}" wrapping="false" />
+									</ui:template>
+								</ui:Column>
+								<ui:Column width="11rem">
+									<Label text="{i18n>coa}" />
+									<ui:template>
+										<Text text="{oModelData>ChartOfAccounts}" wrapping="false" />
+									</ui:template>
+								</ui:Column>
+								<ui:Column width="14rem">
+									<Label text="{i18n>glAssignmentNo}" />
+									<ui:template>
+										<Text text="{oModelData>GLAccountHierarchyName}" wrapping="false" />
+									</ui:template>
+								</ui:Column>
+								<ui:Column width="11rem">
+									<Label text="{i18n>startingBalance}" />
+									<ui:template>
+										<Text text="{oModelData>StartingBalanceAmtInCoCodeCrcy}" wrapping="false" />
+									</ui:template>
+								</ui:Column>
+								<ui:Column width="11rem">
+									<Label text="{i18n>debitBalance}" />
+									<ui:template>
+										<Text text="{oModelData>DebitAmountInCoCodeCrcy}" wrapping="false" />
+									</ui:template>
+								</ui:Column>
+								<ui:Column width="11rem">
+									<Label text="{i18n>creditBalance}" />
+									<ui:template>
+										<Text text="{oModelData>CreditAmountInCoCodeCrcy}" wrapping="false" />
+									</ui:template>
+								</ui:Column>
+								<ui:Column width="11rem">
+									<Label text="{i18n>endingBalance}" />
+									<ui:template>
+										<Text text="{oModelData>EndingBalanceAmtInCoCodeCrcy}" wrapping="false" />
+									</ui:template>
+								</ui:Column>
+							</ui:columns>
+						</ui:Table>
+
+                        <!-- ################################# Trial balance data table#############################-->
+				</content>
+				<footer>
+					<OverflowToolbar>
+						<ToolbarSpacer/>
+						<CheckBox id = "idMasterDataCheckBox" text="{i18n>masterData}"  tooltip="{i18n>coaTooltip}"/>
+                        <CheckBox id = "idTrialBalanceDataCheckBox" text="{i18n>trialbalanceData}"  />
+                        <ToolbarSpacer width="10px"/>
+						<Button id="idSend" text="{i18n>send}" type="Accept" press="onPressSubmit" width="100px"/>
+					</OverflowToolbar>
+				</footer>
+			</Page>
+		</pages>
+	</App>
+   </Shell> 
+</mvc:View>

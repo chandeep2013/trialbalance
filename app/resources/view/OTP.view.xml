@@ -21,8 +21,12 @@
 					</Bar>
 				</customHeader>
 				<content>
+                <VBox fitContainer="true">
                 <!-- ################################# Selection Fileds Start#############################-->
 					<fb:FilterBar clear="onClear" search="onLoadData" showClearButton="true" showClearOnFB="true">
+                        <fb:layoutData>
+					        <FlexItemData shrinkFactor="0" />
+				        </fb:layoutData>
 							<fb:filterGroupItems>
 								<fb:FilterGroupItem id="idLedger" visibleInFilterBar="true" groupName="Ledger" groupTitle="{i18n>ledger}" name="Ledger" label="Ledger">
 									<fb:control>
@@ -53,7 +57,11 @@
                         <!-- ################################# Trial balance data #############################-->
                         <MessageStrip id="idMessageStrip" text="{i18n>messageStrip}" type="Warning" showIcon="true"
 				                    showCloseButton="true" class="sapUiMediumMarginBottom" visible="false"></MessageStrip>
-					<ui:Table id="idTrialbalanceTable" rows="{oModelData>/results}" selectionMode="Single" visibleRowCount="10" ariaLabelledBy="title">
+					<ui:Table id="idTrialbalanceTable" rows="{oModelData>/results}" selectionMode="Single" ariaLabelledBy="title"
+                    visibleRowCountMode="Auto" minAutoRowCount="1" >
+                            <ui:layoutData>
+					            <FlexItemData growFactor="1" baseSize="0%" />
+            				</ui:layoutData>
 							<ui:extension>
 								<OverflowToolbar style="Clear">
 									<Title id="idTrailBalanceDataCount" text="{i18n>records}"/>
@@ -112,6 +120,7 @@
 								</ui:Column>
 							</ui:columns>
 						</ui:Table>
+                        </VBox>
 
                         <!-- ################################# Trial balance data table#############################-->
 				</content>

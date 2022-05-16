@@ -343,6 +343,7 @@ app.post('/srv/PostTrialbalanceData', (req, res) => {
 /////----------- post trial balance data function call --------////////////////////
 const postTrialBalanceData = (token, subdomain, reqInput) => {
     var postTrialBalanceRes = {};
+    //console.log("dest_service====>>>",dest_service);
     return axios({
         method: 'GET',
         url: dest_service.uri + '/destination-configuration/v1/destinations/' + sCpiDestName,

@@ -161,11 +161,10 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                     MessageBox.show(that.getView().getModel("i18n").getProperty("sessionExpiredError"), {
                         icon: MessageBox.Icon.WARNING,
                         title: that.getView().getModel("i18n").getProperty("sessionExpired"),
-                        actions: ["Refresh", MessageBox.Action.CLOSE],
-                        emphasizedAction: "Refresh",
+                        actions: [MessageBox.Action.OK],
                         onClose: function(oAction) {
-                            if (oAction === "Refresh") {
-                                window.location.reload(true);
+                            if (oAction === "OK") {
+                                window.location.replace('/my/logout');
                             }
                         }
                     });
@@ -204,11 +203,10 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                     MessageBox.show(that.getView().getModel("i18n").getProperty("sessionExpiredError"), {
                         icon: MessageBox.Icon.WARNING,
                         title: that.getView().getModel("i18n").getProperty("sessionExpired"),
-                        actions: ["Refresh", MessageBox.Action.CLOSE],
-                        emphasizedAction: "Refresh",
+                        actions: [MessageBox.Action.OK],
                         onClose: function(oAction) {
-                            if (oAction === "Refresh") {
-                                window.location.reload(true);
+                            if (oAction === "OK") {
+                                window.location.replace('/my/logout');
                             }
                         }
                     });
@@ -360,11 +358,10 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                     MessageBox.show(that.getView().getModel("i18n").getProperty("sessionExpiredError"), {
                         icon: MessageBox.Icon.WARNING,
                         title: that.getView().getModel("i18n").getProperty("sessionExpired"),
-                        actions: ["Refresh", MessageBox.Action.CLOSE],
-                        emphasizedAction: "Refresh",
+                        actions: [MessageBox.Action.OK],
                         onClose: function(oAction) {
-                            if (oAction === "Refresh") {
-                                window.location.reload(true);
+                            if (oAction === "OK") {
+                                window.location.replace('/my/logout');
                             }
                         }
                     });
@@ -534,7 +531,7 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                                 });
                                 return;
                             } else if (errorThrown.status === 400) {
-                                errormsg = errorThrown.responseJSON.response.error.code;
+                                errormsg = errorThrown.responseJSON.response.title;
 
                             } else {
                                 errormsg = errorThrown.responseJSON.message === undefined ? JSON.parse(errorThrown.responseJSON.response).error : errorThrown.responseJSON.message;
@@ -553,11 +550,10 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                     MessageBox.show(that.getView().getModel("i18n").getProperty("sessionExpiredError"), {
                         icon: MessageBox.Icon.WARNING,
                         title: that.getView().getModel("i18n").getProperty("sessionExpired"),
-                        actions: ["Refresh", MessageBox.Action.CLOSE],
-                        emphasizedAction: "Refresh",
+                        actions: [MessageBox.Action.OK],
                         onClose: function(oAction) {
-                            if (oAction === "Refresh") {
-                                window.location.reload(true);
+                            if (oAction === "OK") {
+                                window.location.replace('/my/logout');
                             }
                         }
                     });
@@ -676,11 +672,10 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                     MessageBox.show(that.getView().getModel("i18n").getProperty("sessionExpiredError"), {
                         icon: MessageBox.Icon.WARNING,
                         title: that.getView().getModel("i18n").getProperty("sessionExpired"),
-                        actions: ["Refresh", MessageBox.Action.CLOSE],
-                        emphasizedAction: "Refresh",
+                        actions: [MessageBox.Action.OK],
                         onClose: function(oAction) {
-                            if (oAction === "Refresh") {
-                                window.location.reload(true);
+                            if (oAction === "OK") {
+                                window.location.replace('/my/logout');
                             }
                         }
                     });

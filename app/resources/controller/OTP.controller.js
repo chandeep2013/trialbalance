@@ -346,6 +346,10 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                 "sPath": spath,
                 "token": that.jwttoken
             };
+            var oCompanyCodeBody = {
+                "sPath": "/sap/opu/odata/sap/API_COMPANYCODE_SRV/A_CompanyCode?$format=json&$select=CompanyCode,CompanyCodeName,Country,Currency&$filter="+replaceCompanyCodeText,
+                "token": that.jwttoken
+            };
             let getTrialBlancePromise = new Promise(function(Resolve, Reject) {
                 this._getCsrfToken(Resolve, Reject);
             }.bind(this));
@@ -367,6 +371,60 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                     });
                 }
             );
+            let getCompanyCodePromise = new Promise(function(Resolve, Reject) {
+                this._getCsrfToken(Resolve, Reject);
+            }.bind(this));
+            getCompanyCodePromise.then(
+                function(token) {
+                    that.getCompanyCodeData(token, oCompanyCodeBody);
+                },
+                function(error) {
+                    BusyIndicator.hide();
+                    MessageBox.show(that.getView().getModel("i18n").getProperty("sessionExpiredError"), {
+                        icon: MessageBox.Icon.WARNING,
+                        title: that.getView().getModel("i18n").getProperty("sessionExpired"),
+                        actions: [MessageBox.Action.OK],
+                        onClose: function(oAction) {
+                            if (oAction === "OK") {
+                                window.location.replace('/my/logout');
+                            }
+                        }
+                    });
+                }
+            );
+        },
+        getCompanyCodeData:function(token, oCompanyCodeBody){
+        ////////------------------- Get CompanyCode Data from s/4 hana system --------------------///////
+        var that = this;
+            var oCompanyCodeDataModel = new JSONModel();
+            $.ajax({
+                method: "POST",
+                contentType: "application/json",
+                url: "/srv/getCompanyCodeData",
+                data: JSON.stringify(oCompanyCodeBody),
+                headers: {
+                    'X-CSRF-Token': token
+                },
+                async: true,
+                success: function(result) {
+                    var Data = result.results;
+                    oCompanyCodeDataModel.setData(Data);
+                    that.getView().setModel(oCompanyCodeDataModel, "CompanyCodeData");
+                },
+                error: function(errorThrown) {
+                    BusyIndicator.hide();
+                    if (errorThrown.status === 404 || errorThrown.status === 403) {
+                        var errormsg = errorThrown.responseText;
+                    } else {
+                        errormsg = errorThrown.responseJSON.message;
+                    }
+                    MessageBox.show(errormsg + ". " + that.getView().getModel("i18n").getProperty("supportError"), {
+                        title: that.getView().getModel("i18n").getProperty("error"),
+                        icon: MessageBox.Icon.ERROR,
+                        actions: sap.m.MessageBox.Action.OK
+                    });
+                }
+            });
         },
         getTrialbalanceData: function(token, oRequestBody) {
             ///////----------------- Get Trial Balance Data from S/4 Hana system -----------------////////

@@ -312,6 +312,73 @@ const getTrialBalanceData = (token, spath) => {
         return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
     });
 }
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////-------------------- Get CompnayCode Data From S/4 System ---------------////////////////////////////
+app.post('/srv/getCompanyCodeData', (req, res) => {
+    const token = req.body.token;
+    var spath = req.body.sPath;
+    const bearerHeader = req.headers['authorization'];
+    const expired = tokenValidityCheck(bearerHeader);
+    if (expired === true) {
+        fetchTokenHandler(req.authInfo.getSubdomain()).then(
+            (response) => getCompanyCodeData(response.data, spath).then(
+                (companyCodeDataRes) => {
+                    return res.type("application/json").status(companyCodeDataRes.statusCode).send({
+                        results: companyCodeDataRes.result
+                    });
+                }
+            )
+        )
+    } else {
+        getCompanyCodeData(token, spath).then(
+            (companyCodeDataRes) => {
+                return res.type("application/json").status(companyCodeDataRes.statusCode).send({
+                    results: companyCodeDataRes.result
+                });
+            }
+        );
+    }
+});
+/////----------- get trial balance data function call --------////////////////////
+const getCompanyCodeData = (token, spath) => {
+    var companyCodeDataRes = {};
+    return axios({
+        method: 'GET',
+        url: dest_service.uri + '/destination-configuration/v1/destinations/' + sS4HanaDestName,
+        headers: {
+            'Authorization': 'Bearer ' + token
+        }
+    }).then(function(destData) {
+        const oDestination = destData;
+        const token = oDestination.data.authTokens[0];
+        return axios({
+            method: 'GET',
+            url: oDestination.data.destinationConfiguration.URL + spath,
+            headers: {
+                "Accept": "application/json",
+                "content-type": "application/json",
+                "Application-Interface-key" : "saptest0", // 2gca5352
+                'Authorization': `${token.type} ${token.value}`
+            }
+        }).then(function(result) {
+            companyCodeDataRes.statusCode = 202;
+            companyCodeDataRes.result = result.data.d;
+            //console.log("companyCodeDataRes====>>>",companyCodeDataRes);
+            return companyCodeDataRes;
+        }).catch(function(error) {
+            console.log("companyCodeDataRes service Call failed===>>>> error", error);
+            companyCodeDataRes.statusCode = error.response.status;
+            companyCodeDataRes.result = error.response.data;
+            return companyCodeDataRes;
+        });
+    }).catch(function(error) {
+        console.log("Failed to authenticate token ====>>>>", error);
+        return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
+    });
+}
+
 /////-------------------- Post Trial Blance Data to OTP ---------------////////////////////////////
 app.post('/srv/PostTrialbalanceData', (req, res) => {
     const token = req.body.token;

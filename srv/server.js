@@ -476,7 +476,7 @@ const postTrialBalanceData = (token, subdomain, reqInput) => {
 }
 /////-------------------- Post Master Data to OTP ---------------////////////////////////////
 app.post('/srv/PostCOAMasterData', (req, res) => {
-    const token = req.body.token;
+    const token = req.body.reqbody.token;
     const reqInput = req.body;
     const subdomain = req.authInfo.getSubdomain();
     const bearerHeader = req.headers['authorization'];
@@ -502,7 +502,7 @@ app.post('/srv/PostCOAMasterData', (req, res) => {
         );
     }
 });
-/////----------- post trial balance data function call --------////////////////////
+/////----------- post master data function call --------////////////////////
 const postMasterData = (token, subdomain, reqInput) => {
     var postMasterDataRes = {};
     return axios({
@@ -515,7 +515,7 @@ const postMasterData = (token, subdomain, reqInput) => {
         const oDestination = destData;
         const token = oDestination.data.authTokens[0];
         return axios({
-            url: oDestination.data.destinationConfiguration.URL + '/http/CPI/FetchMasterData/MasterDataUpdate/V1.0',
+            url: oDestination.data.destinationConfiguration.URL + '/http/CPI/FetchMasterData/MasterDataUpdate/V9.0',
             withCredentials: true,
             resolveWithFullResponse: true,
             headers: {
@@ -527,18 +527,19 @@ const postMasterData = (token, subdomain, reqInput) => {
         }).then(function(response) {
             return axios({
                 method: 'POST',
-                url: oDestination.data.destinationConfiguration.URL + '/http/CPI/FetchMasterData/MasterDataUpdate/V1.0',
+                url: oDestination.data.destinationConfiguration.URL + '/http/CPI/FetchMasterData/MasterDataUpdate/V9.0',
                 // withCredentials: true,
                 resolveWithFullResponse: true,
+                data: JSON.stringify(reqInput.companycodeData),
                 headers: {
                     "content-type": "application/json",
                     "accept": "application/json",
                     "x-csrf-token": Object.getOwnPropertyDescriptor(response.headers, 'x-csrf-token').value,
                     "Cookie": Object.getOwnPropertyDescriptor(response.headers, 'set-cookie').value,
                     "Content-Type": "application/json; charset=utf-8",
-                    "FromDate": reqInput.fromDate + "T00:00:00",
-                    "ToDate": reqInput.ToDate + "T00:00:00",
-                    "filter": reqInput.filter,
+                    "FromDate": reqInput.reqbody.fromDate + "T00:00:00",
+                    "ToDate": reqInput.reqbody.ToDate + "T00:00:00",
+                    "filter": reqInput.reqbody.filter,
                     "select": "CompanyCode,GLAccount,GLAccountHierarchyName,ChartOfAccounts,StartingBalanceAmtInCoCodeCrcy,DebitAmountInCoCodeCrcy,CreditAmountInCoCodeCrcy,EndingBalanceAmtInCoCodeCrcy,CompanyCodeCurrency,ProfitCenter,CostCenter",
                     "format": "json",
                     "TenantID": subdomain.toUpperCase(),

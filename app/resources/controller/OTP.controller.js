@@ -588,6 +588,14 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                                     actions: sap.m.MessageBox.Action.OK
                                 });
                                 return;
+                            }else if(errorThrown.status === 401){
+                                errormsg =  errorThrown.responseJSON.response.Message;
+                                MessageBox.show(errormsg, {
+                                    title: that.getView().getModel("i18n").getProperty("error"),
+                                    icon: MessageBox.Icon.ERROR,
+                                    actions: sap.m.MessageBox.Action.OK
+                                });
+                                return;                                
                             } else if (errorThrown.status === 400) {
                                 errormsg = errorThrown.responseJSON.response.title;
 
@@ -630,7 +638,13 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
         _PushMasterDataToOTP: function() {
             ///////---------------------- Master Data service call-------------/////////////////
             var that = this;
+            var companycodeData = this.getView().getModel("CompanyCodeData").getData().results;
+                for(let i=0;i<companycodeData.length;i++){
+                        delete companycodeData[i].__metadata;
+                }
             var reqbody = this._headerInfo();
+            var payload={"reqbody":reqbody,
+                         "companycodeData":companycodeData};
             BusyIndicator.show(-1);
             let pushMasterDataToOTPPromise = new Promise(function(Resolve, Reject) {
                 this._getCsrfToken(Resolve, Reject);
@@ -644,7 +658,7 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                         headers: {
                             'X-CSRF-Token': token
                         },
-                        data: JSON.stringify(reqbody),
+                        data: JSON.stringify(payload),
                         async: true,
                         success: function(result) {
                             if (result.response && result.response.Error !== undefined) {
@@ -712,6 +726,14 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                                     });
 
                                 }
+                            }else if(errorThrown.status === 401){
+                                errormsg =  errorThrown.responseJSON.response.Message;
+                                MessageBox.show(errormsg, {
+                                    title: that.getView().getModel("i18n").getProperty("error"),
+                                    icon: MessageBox.Icon.ERROR,
+                                    actions: sap.m.MessageBox.Action.OK
+                                });
+                                return;                                
                             } else {
                                 errormsg = errorThrown.responseJSON.response.message;
                                 title = errorThrown.statusTex;

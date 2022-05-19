@@ -32,7 +32,7 @@ app.use(passport.authenticate('JWT', {
 app.use(bodyParser.json());
 const lib = require('./library');
 
-////-------------------------- Start of changes ------------------------------////////////////
+/////-------------------------- Start of changes ------------------------------////////////////
 const dest_service = xsenv.getServices({
     dest: {
         tag: 'destination'

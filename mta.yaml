@@ -21,6 +21,7 @@ modules:
       - name: saastrialbalanceapp-uaa
       - name: saastrialbalanceapp-registry
       - name: saastrialbalanceapp-dest
+      - name: tb-logs
 
   - name: saastrialbalanceapp
     type: html5
@@ -97,4 +98,9 @@ resources:
                 clientSecret:
                 User: <SetValueInCockpit>
                 Password: <SetValueInCockpit>
+  - name: tb-logs
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: application-logs
+      service-plan: lite
               

@@ -688,11 +688,11 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                             else if(that.tbAndCoa !== true){
                                     BusyIndicator.hide();
                             }
-                            if (errorThrown.status === 400 && errorThrown.responseJSON.error && errorThrown.responseJSON.error.Message === "Accounts Created Successfully. Company Codes already stablished.") {
+                            if (errorThrown.status === 400 && errorThrown.responseJSON.error && errorThrown.responseJSON.error.Message) {
                                 errormsg = errorThrown.responseJSON.error.Message;
                                 MessageBox.success(errormsg);
                                 return;
-                            } else if (errorThrown.status === 400 && errorThrown.responseJSON.response.Message === "Accounts Created Successfully. Company Codes already stablished.") {
+                            } else if (errorThrown.status === 400 && errorThrown.responseJSON.response.Message) {
                                 errormsg = errorThrown.responseJSON.response.Message;
                                 MessageBox.success(errormsg);
                                 return;

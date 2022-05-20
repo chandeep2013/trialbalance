@@ -36,7 +36,7 @@
 								<fb:FilterGroupItem id="idCompanyCode" visibleInFilterBar="true" groupName="CompanyCode" groupTitle="{i18n>companyCode}" name="Company Code"
 								label="Company Code">
 									<fb:control>
-										<MultiInput id="idSelectedComapnyCode" placeholder="{i18n>companyCode}" valueHelpRequest="onValueHelpRequestCompanyCode"></MultiInput>
+										<MultiInput id="idSelectedComapnyCode" placeholder="{i18n>companyCode}" showValueHelp = "true" valueHelpOnly="true" valueHelpRequest="onValueHelpRequestCompanyCode"></MultiInput>
 									</fb:control>
 								</fb:FilterGroupItem>
 								<fb:FilterGroupItem id="idPostedDateFrom" visibleInFilterBar="true" groupName="PostedDateFrom" groupTitle="{i18n>postedDateFrom}" name="Posting Date From"

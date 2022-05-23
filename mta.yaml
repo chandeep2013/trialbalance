@@ -45,6 +45,7 @@ modules:
           name: srv
           url: ~{url}
           forwardAuthToken: true
+          timeout: 120000
 
 resources:
   - name: saastrialbalanceapp-uaa

@@ -466,6 +466,13 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                     BusyIndicator.hide();
                     if (errorThrown.status === 404 || errorThrown.status === 403) {
                         var errormsg = errorThrown.responseText;
+                    }else if(errorThrown.status === 400){
+                        try{
+                            errormsg = errorThrown.responseJSON.results.error.message.value;
+                        }catch(err){
+                            errormsg = errorThrown.responseJSON;
+                        }
+                        
                     } else {
                         errormsg = errorThrown.responseJSON.message;
                     }

@@ -245,6 +245,14 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                     });
                     return;
                 }
+                else if (LedgerResponse.status === 502) {
+                    MessageBox.show(LedgerResponse.responseJSON.results, {
+                        title: that.getView().getModel("i18n").getProperty("error"),
+                        icon: MessageBox.Icon.ERROR,
+                        actions: sap.m.MessageBox.Action.OK
+                    });
+                    return;
+                }
             }.bind(this));
         },
         onAfterRendering: function() {
@@ -317,7 +325,7 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                 companyCode = that.getView().byId("idSelectedComapnyCode").getTokens(),
                 aCodeEntries = [];
             for (let i = 0; i < companyCode.length; i++) {
-                aCodeEntries.push("CompanyCode eq '" + parseInt(companyCode[i].getText()) + "'");
+                aCodeEntries.push("CompanyCode eq '" + companyCode[i].getText() + "'");//parseInt() removed from here
             }
             replaceCompanyCodeText = "( " + aCodeEntries.join(" or ") + " )";
             ledger = that.getView().byId("idSelectedLedger").getValue();
@@ -415,6 +423,8 @@ function(Controller, MessageBox, Token, BusyIndicator, formatter, Dialog, Messag
                     BusyIndicator.hide();
                     if (errorThrown.status === 404 || errorThrown.status === 403) {
                         var errormsg = errorThrown.responseText;
+                    }else if(errorThrown.status === 401){
+                        var errormsg = errorThrown.statusText;
                     } else {
                         errormsg = errorThrown.responseJSON.message;
                     }

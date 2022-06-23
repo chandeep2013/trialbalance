@@ -50,8 +50,8 @@ async function getCFInfo(appname) {
         let res1 = await core.executeHttpRequest({ destinationName: 'saastrialbalanceapp-cfapi'}, {
             method: 'GET',
             url: '/v3/apps?organization_guids=' + appEnv.app.organization_id + '&space_guids=' + appEnv.app.space_id + '&names=' + appname
-        });
-        // get domain GUID
+        });// get domain GUID
+        
         let res2 = await core.executeHttpRequest({ destinationName: 'saastrialbalanceapp-cfapi'}, {
             method: 'GET',
             url: '/v3/domains?names=' + /\.(.*)/gm.exec(appEnv.app.application_uris[0])[1]

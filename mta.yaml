@@ -21,7 +21,8 @@ modules:
       - name: saastrialbalanceapp-uaa
       - name: saastrialbalanceapp-registry
       - name: saastrialbalanceapp-dest
-      #- name: tb-logs
+      - name: saastrialbalanceapp-connectivity
+      - name: tb-logs
 
   - name: saastrialbalanceapp
     type: html5
@@ -71,7 +72,7 @@ resources:
       service-name: saastrialbalanceapp-registry
       config:
         xsappname: ~{saastrialbalanceapp-uaa/XSAPPNAME}
-        appName: saastrialbalanceapp
+        appName: saastrialbalanceapp #-${space} # added to deploy the code in same region
         displayName: 'Send Trial Balance to ONESOURCE'
         description: 'Select and Send S/4HANA Trial Balance to ONESOURCE'
         category: 'SaaS Multitenant Apps'
@@ -99,9 +100,14 @@ resources:
                 clientSecret:
                 User: <SetValueInCockpit>
                 Password: <SetValueInCockpit>
-  #- name: tb-logs
-  #  type: org.cloudfoundry.managed-service
-  #  parameters:
-  #    service: application-logs
-  #    service-plan: lite
+  - name: saastrialbalanceapp-connectivity
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: connectivity
+      service-plan: lite
+  - name: tb-logs
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: application-logs
+      service-plan: lite
               

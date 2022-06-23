@@ -15,6 +15,9 @@ const services = xsenv.getServices({
     },
     dest: {
         tag: 'destination'
+    },
+    connectivity: {
+        tag: 'connectivity'
     }
 });
 const core = require('@sap-cloud-sdk/core');
@@ -32,7 +35,16 @@ app.use(passport.authenticate('JWT', {
 app.use(bodyParser.json());
 const lib = require('./library');
 
+///// ------ Applicaiton Logging service ------/////
+const log= require('cf-nodejs-logging-support');
+log.setLoggingLevel('info');
+log.registerCustomFields(["Subdomain","UserName","JWT","DestinationConfig","LedgerError","CompanyCodeError","TrialBalanceError","CompanyCodeDetailsError","PostTrialBalanceError","PostMasterDataError"]);
+app.use(log.logNetwork);
+
 /////-------------------------- Start of changes ------------------------------////////////////
+const sS4HanaDestName = 'OTPS4HANA';
+const sCpiDestName = 'OTPCPI';
+
 const dest_service = xsenv.getServices({
     dest: {
         tag: 'destination'
@@ -43,13 +55,17 @@ const uaa_service = xsenv.getServices({
         tag: 'xsuaa'
     }
 }).uaa;
-const sUaaCredentials = dest_service.clientid + ':' + dest_service.clientsecret;
-const sS4HanaDestName = 'S4HanaBTPQA';
-const sCpiDestName = 'OTPCPI';
+const connectivity_service = xsenv.getServices({ //// get connectivity service for on premise
+    connectivity: {
+        tag: 'connectivity'
+    }
+}).connectivity;
+
+var destJwtToken = ""; // Destination Jwt token
+var connJwtToken = ""; // connectivity Jwt token
+var oSystem = ""; // flag for cpi 
 
 app.get('/srv/info', function(req, res) {
-    //$XSAPPNAME.User 
-    //console.log("TokenInfo", req.tokenInfo.getPayload());
     if (req.authInfo.checkScope('uaa.user')) {
         let info = {
             'userInfo': req.user,
@@ -65,43 +81,35 @@ app.get('/srv/info', function(req, res) {
     }
 });
 ////--------------- Fetch JWT Token ----------------//////////////
-const fetchTokenHandler = (subdomain) => {
-    var response = {};
-    return axios({
-        url: dest_service.url.split('://')[0] + '://' + subdomain + dest_service.url.slice(dest_service.url.indexOf('.')) + '/oauth/token?grant_type=client_credentials',
-        method: 'POST',
-        headers: {
-            'Authorization': 'Basic ' + Buffer.from(sUaaCredentials).toString('base64'),
-            'Content-type': 'application/x-www-form-urlencoded'
-        },
-        form: {
-            'client_id': dest_service.clientid,
-            'grant_type': 'client_credentials'
+const fetchTokenHandler = async function(subdomain, oauthUrl, oauthClient, oauthSecret) {
+    return new Promise((resolve, reject) => {
+        const tokenUrl = oauthUrl.split('://')[0] + '://' + subdomain + oauthUrl.slice(oauthUrl.indexOf('.')) + '/oauth/token?grant_type=client_credentials';
+        const config = {
+            headers: {
+                Authorization: "Basic " + Buffer.from(oauthClient + ':' + oauthSecret).toString("base64")
+            }
         }
-    }).then(function(res) {
-        //console.log("responseToken====>>>>",response.data);
-        response.data = res.data.access_token;
-        response.statusCode = 202;
-        return response;
-        //(response) => response.json();
-    }).catch(function(error) {
-        console.log("Failed to get destination service Info.====>>>>", error);
-        response.data = error;
-        response.statusCode = error.response.status;
-        return response;
-    });
+        axios.get(tokenUrl, config)
+            .then(response => {
+                resolve(response.data.access_token)
+            })
+            .catch(error => {
+                console.log("error jwt", error)
+                req.logger.info('JWT Token Error===>',{"JWT": error});
+                reject(error)
+            })
+    })
 }
 /////------------------- Get Token -------------- /////////////
-app.get('/srv/getToken', (req, res) => {
+app.get('/srv/getToken', async function(req, res) {
 
-    fetchTokenHandler(req.authInfo.getSubdomain()).then(
-        (response) => {
-            //console.log("token===>>",response.data);
-            return res.type("application/json").status(response.statusCode).send({
-                data: response.data
-            });
-        }
-    );
+    destJwtToken = await fetchTokenHandler(req.authInfo.getSubdomain(), dest_service.url, dest_service.clientid, dest_service.clientsecret);
+    connJwtToken = await fetchTokenHandler(req.authInfo.getSubdomain(), connectivity_service.token_service_url, connectivity_service.clientid, connectivity_service.clientsecret);
+    req.logger.info('User==>',{"UserName": req.user}); //-------- Adding User details in Logging service  
+    req.logger.info('Subdomain===>',{"Subdomain": req.authInfo.getSubdomain()});//-------- Adding Subdomain in Logging service  
+    return res.type("application/json").status(200).send({
+        data: destJwtToken
+    });
 });
 /////--------------- Token Validity Check -------------------////////////
 const tokenValidityCheck = (bearerHeader) => {
@@ -112,25 +120,71 @@ const tokenValidityCheck = (bearerHeader) => {
         const payloadBase64 = jwtToken.split('.')[1];
         const decodedJson = Buffer.from(payloadBase64, 'base64').toString();
         const decoded = JSON.parse(decodedJson);
-        //console.log("decoded====>>>>", decoded);
         const exp = decoded.exp;
-        //console.log("exp====>>>>", exp);
         const expired = (Date.now() >= exp * 1000);
-        //console.log("expired===>>>", expired);
         return expired;
     } else {
         res.sendStatus(403);
     }
 }
+////--------- Call Destination Service. Result will be an object with Destination Configuration info----/////
+const _readDestinationConfig = async function(destinationName, destUri, jwtToken) {
+    var configHeaders = "";
+    var configProxy = "";
+    return new Promise((resolve, reject) => {
+        const destSrvUrl = destUri + '/destination-configuration/v1/destinations/' + destinationName
+        const config = {
+            headers: {
+                Authorization: 'Bearer ' + jwtToken
+            }
+        }
+        axios.get(destSrvUrl, config)
+            .then(response => {
+                const token = response.data.authTokens[0];
+                let destConfig = response.data.destinationConfiguration;
+                ////------- conditions for OnPremise/Cloud-------//////
+                if (destConfig.ProxyType === "OnPremise") {
+                    oSystem = "S4HANAOnPremise";
+                    configHeaders = { //// headers for on premise system
+                        'Authorization': `${token.type} ${token.value}`,
+                        'Proxy-Authorization': 'Bearer ' + connJwtToken,
+                        'SAP-Connectivity-SCC-Location_ID': destConfig.CloudConnectorLocationId
+                    }
+                    configProxy = { ///// proxy for on premise system
+                        host: connectivity_service.onpremise_proxy_host,
+                        port: connectivity_service.onpremise_proxy_http_port
+                    }
+                } else {
+                    oSystem = "S4HANACloud";
+                    configHeaders = { //// headers for cloud system
+                        "Accept": "application/json",
+                        "content-type": "application/json",
+                        'Authorization': `${token.type} ${token.value}`
+                    }
+                }
+                ////------ return destination info ----////
+                let oDestConfigInfo = {
+                    "destConfig": destConfig,
+                    "configHeaders": configHeaders,
+                    "configProxy": configProxy
+                };
+                resolve(oDestConfigInfo)
+            })
+            .catch(error => {
+                console.log("destinationConfigurationError", error);
+                req.logger.info('Destination Config Error===>',{"DestinationConfig": error});
+                reject(error)
+            })
+    })
+}
 //////--------------------Selection service calls-------------------////////////////////////////
 /////-------------------- Get Ledger From S/4 System ---------------////////////////////////////
-app.post('/srv/getLedger', (req, res) => {
+app.post('/srv/getLedger', async (req, res) => {
     var token = req.body.token;
     const bearerHeader = req.headers['authorization'];
     const expired = tokenValidityCheck(bearerHeader);
     if (expired === true) {
-        //console.log("Checking with expired token=====>>", expired);
-        fetchTokenHandler(req.authInfo.getSubdomain()).then(
+        fetchTokenHandler(req.authInfo.getSubdomain(), dest_service.url, dest_service.clientid, dest_service.clientsecret).then(
             (response) => getLedger(response.data).then(
                 (ledgerRes) => {
                     return res.type("application/json").status(ledgerRes.statusCode).send({
@@ -142,6 +196,10 @@ app.post('/srv/getLedger', (req, res) => {
     } else {
         getLedger(token).then(
             (ledgerRes) => {
+                //-------- Adding Ledger Service Call Error in Logging service 
+                if(parseInt(ledgerRes.statusCode) > 203){
+                    req.logger.info('Ledger Service Call Error===>',{"LedgerError": ledgerRes.result});
+                }
                 return res.type("application/json").status(ledgerRes.statusCode).send({
                     results: ledgerRes.result
                 });
@@ -150,50 +208,34 @@ app.post('/srv/getLedger', (req, res) => {
     }
 });
 /////////---------- Get Ledger Function call ----------////////////////
-const getLedger = (token) => {
+const getLedger = async (token) => {
+    const oDestConfigInfo = await _readDestinationConfig(sS4HanaDestName, dest_service.uri, token);
     var ledgerRes = {};
     return axios({
         method: 'GET',
-        url: dest_service.uri + '/destination-configuration/v1/destinations/' + sS4HanaDestName,
-        headers: {
-            'Authorization': 'Bearer ' + token
-        }
-    }).then(function(destData) {
-        const oDestination = destData;
-        const token = oDestination.data.authTokens[0];
-        return axios({
-            method: 'GET',
-            url: oDestination.data.destinationConfiguration.URL + "/sap/opu/odata/sap/C_TRIALBALANCE_CDS/Ledger",
-            headers: {
-                "Accept": "application/json",
-                "content-type": "application/json",
-                'Authorization': `${token.type} ${token.value}`
-            }
-        }).then(function(result) {
-            ledgerRes.statusCode = 202;
-            ledgerRes.result = result.data.d;
-            //console.log("ledgerRes====>>>",ledgerRes);
-            return ledgerRes;
-        }).catch(function(error) {
-            console.log("LedgerService Call failed===>>>> error", error);
-            ledgerRes.statusCode = error.response.status;
-            ledgerRes.result = error.response.data;
-            return ledgerRes;
-        });
+        url: oDestConfigInfo.destConfig.URL + "/sap/opu/odata/sap/C_TRIALBALANCE_CDS/Ledger",
+        headers: oDestConfigInfo.configHeaders,
+        proxy: oDestConfigInfo.configProxy
+    }).then(function(result) {
+        ledgerRes.statusCode = 202;
+        ledgerRes.result = result.data.d;
+        //console.log("ledgerRes====>>>",ledgerRes);
+        return ledgerRes;
     }).catch(function(error) {
-        console.log("Failed to authenticate token ====>>>>", error);
-        return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
+        console.log("LedgerService Call failed===>>>> error", error);
+        ledgerRes.statusCode = error.response.status;
+        ledgerRes.result = error.response.data;
+        return ledgerRes;
     });
 }
 
 /////-------------------- Get CompanyCode From S/4 System ---------------////////////////////////////
-app.post('/srv/getCompanyCode', (req, res) => {
+app.post('/srv/getCompanyCode', async (req, res) => {
     var token = req.body.token;
     const bearerHeader = req.headers['authorization'];
     const expired = tokenValidityCheck(bearerHeader);
     if (expired === true) {
-       // console.log("Checking with expired token=====>>", expired);
-        fetchTokenHandler(req.authInfo.getSubdomain()).then(
+        fetchTokenHandler(req.authInfo.getSubdomain(), dest_service.url, dest_service.clientid, dest_service.clientsecret).then(
             (response) => getCompanyCode(response.data).then(
                 (companyCodeRes) => {
                     return res.type("application/json").status(companyCodeRes.statusCode).send({
@@ -205,6 +247,10 @@ app.post('/srv/getCompanyCode', (req, res) => {
     } else {
         getCompanyCode(token).then(
             (companyCodeRes) => {
+                //-------- Adding CompanyCode Service Call Error in Logging service 
+                if(parseInt(companyCodeRes.statusCode) > 203){
+                    req.logger.info('companyCode Service Call Error===>',{"CompanyCodeError": companyCodeRes.result});
+                }
                 return res.type("application/json").status(companyCodeRes.statusCode).send({
                     results: companyCodeRes.result
                 });
@@ -213,50 +259,35 @@ app.post('/srv/getCompanyCode', (req, res) => {
     }
 });
 /////--------------- Get Company code Funciton call --------------//////////////
-const getCompanyCode = (token) => {
+const getCompanyCode = async (token) => {
     var companyCodeRes = {};
+    const oDestConfigInfo = await _readDestinationConfig(sS4HanaDestName, dest_service.uri, token);
     return axios({
         method: 'GET',
-        url: dest_service.uri + '/destination-configuration/v1/destinations/' + sS4HanaDestName,
-        headers: {
-            'Authorization': 'Bearer ' + token
-        }
-    }).then(function(destData) {
-        const oDestination = destData;
-        const token = oDestination.data.authTokens[0];
-        return axios({
-            method: 'GET',
-            url: oDestination.data.destinationConfiguration.URL + "/sap/opu/odata/sap/C_TRIALBALANCE_CDS/CompanyCode",
-            headers: {
-                "Accept": "application/json",
-                "content-type": "application/json",
-                'Authorization': `${token.type} ${token.value}`
-            }
-        }).then(function(result) {
-            companyCodeRes.statusCode = 202;
-            companyCodeRes.result = result.data.d;
-            //console.log("companyCodeRes====>>>",companyCodeRes);
-            return companyCodeRes;
-        }).catch(function(error) {
-            console.log("companyCode service Call failed===>>>> error", error);
-            companyCodeRes.statusCode = error.response.status;
-            companyCodeRes.result = error.response.data;
-            return companyCodeRes;
-        });
+        url: oDestConfigInfo.destConfig.URL + "/sap/opu/odata/sap/C_TRIALBALANCE_CDS/CompanyCode",
+        headers: oDestConfigInfo.configHeaders,
+        proxy: oDestConfigInfo.configProxy
+    }).then(function(result) {
+        companyCodeRes.statusCode = 202;
+        companyCodeRes.result = result.data.d;
+        //console.log("companyCodeRes====>>>",companyCodeRes);
+        return companyCodeRes;
     }).catch(function(error) {
-        console.log("Failed to authenticate token ====>>>>", error);
-        return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
+        console.log("companyCodeRes Call failed===>>>> error", error);
+        companyCodeRes.statusCode = error.response.status;
+        companyCodeRes.result = error.response.data;
+        return companyCodeRes;
     });
 }
 /////-------------------- Get Trial Balance Data From S/4 System ---------------////////////////////////////
-app.post('/srv/getTrialBalanceData', (req, res) => {
+app.post('/srv/getTrialBalanceData', async (req, res) => {
     const token = req.body.token;
     var spath = req.body.sPath;
     const bearerHeader = req.headers['authorization'];
     const expired = tokenValidityCheck(bearerHeader);
     if (expired === true) {
-        //console.log("Checking with expired token=====>>", expired);
-        fetchTokenHandler(req.authInfo.getSubdomain()).then(
+        //console.log("Checking with expired token=====>>", expired);re.authInfo.getSubdomain();
+        fetchTokenHandler(req.authInfo.getSubdomain(), dest_service.url, dest_service.clientid, dest_service.clientsecret).then(
             (response) => getTrialBalanceData(response.data, spath).then(
                 (trialBalanceRes) => {
                     return res.type("application/json").status(trialBalanceRes.statusCode).send({
@@ -268,6 +299,10 @@ app.post('/srv/getTrialBalanceData', (req, res) => {
     } else {
         getTrialBalanceData(token, spath).then(
             (trialBalanceRes) => {
+                //-------- Adding TrialBalance Service Call Error in Logging service 
+                if(parseInt(trialBalanceRes.statusCode) > 203){
+                    req.logger.info('TrialBalance Service Call Error===>',{"TrialBalanceError": trialBalanceRes.result});
+                }
                 return res.type("application/json").status(trialBalanceRes.statusCode).send({
                     results: trialBalanceRes.result
                 });
@@ -276,53 +311,34 @@ app.post('/srv/getTrialBalanceData', (req, res) => {
     }
 });
 /////----------- get trial balance data function call --------////////////////////
-const getTrialBalanceData = (token, spath) => {
+const getTrialBalanceData = async (token, spath) => {
     var trialBalanceRes = {};
+    const oDestConfigInfo = await _readDestinationConfig(sS4HanaDestName, dest_service.uri, token);
     return axios({
         method: 'GET',
-        url: dest_service.uri + '/destination-configuration/v1/destinations/' + sS4HanaDestName,
-        headers: {
-            'Authorization': 'Bearer ' + token
-        }
-    }).then(function(destData) {
-        const oDestination = destData;
-        const token = oDestination.data.authTokens[0];
-        return axios({
-            method: 'GET',
-            url: oDestination.data.destinationConfiguration.URL + spath,
-            headers: {
-                "Accept": "application/json",
-                "content-type": "application/json",
-                "Application-Interface-key" : "saptest0", // 2gca5352
-                'Authorization': `${token.type} ${token.value}`
-            }
-        }).then(function(result) {
-            trialBalanceRes.statusCode = 202;
-            trialBalanceRes.result = result.data.d;
-            //console.log("trialBalanceRes====>>>",trialBalanceRes);
-            return trialBalanceRes;
-        }).catch(function(error) {
-            console.log("trialBalance service Call failed===>>>> error", error);
-            trialBalanceRes.statusCode = error.response.status;
-            trialBalanceRes.result = error.response.data;
-            return trialBalanceRes;
-        });
+        url: oDestConfigInfo.destConfig.URL + spath,
+        headers: oDestConfigInfo.configHeaders,
+        proxy: oDestConfigInfo.configProxy
+    }).then(function(result) {
+        trialBalanceRes.statusCode = 202;
+        trialBalanceRes.result = result.data.d;
+        //console.log("trialBalanceRes====>>>",trialBalanceRes);
+        return trialBalanceRes;
     }).catch(function(error) {
-        console.log("Failed to authenticate token ====>>>>", error);
-        return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
+        console.log("trialBalanceRes Call failed===>>>> error", error);
+        trialBalanceRes.statusCode = error.response.status;
+        trialBalanceRes.result = error.response.data;
+        return trialBalanceRes;
     });
 }
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////-------------------- Get CompnayCode Data From S/4 System ---------------////////////////////////////
-app.post('/srv/getCompanyCodeData', (req, res) => {
+app.post('/srv/getCompanyCodeData', async (req, res) => {
     const token = req.body.token;
     var spath = req.body.sPath;
     const bearerHeader = req.headers['authorization'];
     const expired = tokenValidityCheck(bearerHeader);
     if (expired === true) {
-        fetchTokenHandler(req.authInfo.getSubdomain()).then(
+        fetchTokenHandler(req.authInfo.getSubdomain(), dest_service.url, dest_service.clientid, dest_service.clientsecret).then(
             (response) => getCompanyCodeData(response.data, spath).then(
                 (companyCodeDataRes) => {
                     return res.type("application/json").status(companyCodeDataRes.statusCode).send({
@@ -334,6 +350,10 @@ app.post('/srv/getCompanyCodeData', (req, res) => {
     } else {
         getCompanyCodeData(token, spath).then(
             (companyCodeDataRes) => {
+                //-------- Adding CompanyCodeDetails Service Call Error in Logging service 
+                if(parseInt(companyCodeDataRes.statusCode) > 203){
+                    req.logger.info('CompanyCodeDetails Service Call Error===>',{"CompanyCodeDetailsError": companyCodeDataRes.result});
+                }
                 return res.type("application/json").status(companyCodeDataRes.statusCode).send({
                     results: companyCodeDataRes.result
                 });
@@ -341,41 +361,25 @@ app.post('/srv/getCompanyCodeData', (req, res) => {
         );
     }
 });
-/////----------- get trial balance data function call --------////////////////////
-const getCompanyCodeData = (token, spath) => {
+//////////////----------- get company code data function call --------////////////////////
+const getCompanyCodeData = async (token, spath) => {
     var companyCodeDataRes = {};
+    const oDestConfigInfo = await _readDestinationConfig(sS4HanaDestName, dest_service.uri, token);
     return axios({
         method: 'GET',
-        url: dest_service.uri + '/destination-configuration/v1/destinations/' + sS4HanaDestName,
-        headers: {
-            'Authorization': 'Bearer ' + token
-        }
-    }).then(function(destData) {
-        const oDestination = destData;
-        const token = oDestination.data.authTokens[0];
-        return axios({
-            method: 'GET',
-            url: oDestination.data.destinationConfiguration.URL + spath,
-            headers: {
-                "Accept": "application/json",
-                "content-type": "application/json",
-                "Application-Interface-key" : "saptest0", // 2gca5352
-                'Authorization': `${token.type} ${token.value}`
-            }
-        }).then(function(result) {
-            companyCodeDataRes.statusCode = 202;
-            companyCodeDataRes.result = result.data.d;
-            //console.log("companyCodeDataRes====>>>",companyCodeDataRes);
-            return companyCodeDataRes;
-        }).catch(function(error) {
-            console.log("companyCodeDataRes service Call failed===>>>> error", error);
-            companyCodeDataRes.statusCode = error.response.status;
-            companyCodeDataRes.result = error.response.data;
-            return companyCodeDataRes;
-        });
+        url: oDestConfigInfo.destConfig.URL + spath,
+        headers: oDestConfigInfo.configHeaders,
+        proxy: oDestConfigInfo.configProxy
+    }).then(function(result) {
+        companyCodeDataRes.statusCode = 202;
+        companyCodeDataRes.result = result.data.d;
+        //console.log("companyCodeDataRes====>>>",companyCodeDataRes);
+        return companyCodeDataRes;
     }).catch(function(error) {
-        console.log("Failed to authenticate token ====>>>>", error);
-        return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
+        console.log("companyCodeDataRes Call failed===>>>> error", error);
+        companyCodeDataRes.statusCode = error.response.status;
+        companyCodeDataRes.result = error.response.data;
+        return companyCodeDataRes;
     });
 }
 
@@ -387,7 +391,6 @@ app.post('/srv/PostTrialbalanceData', (req, res) => {
     const bearerHeader = req.headers['authorization'];
     const expired = tokenValidityCheck(bearerHeader);
     if (expired === true) {
-       // console.log("Checking with expired token=====>>", expired);
         fetchTokenHandler(subdomain).then(
             (response) => postTrialBalanceData(response.data, subdomain, reqInput).then(
                 (postTrialBalanceRes) => {
@@ -400,6 +403,10 @@ app.post('/srv/PostTrialbalanceData', (req, res) => {
     } else {
         postTrialBalanceData(token, subdomain, reqInput).then(
             (postTrialBalanceRes) => {
+                //-------- Adding PostTrialBalance Service Call Error in Logging service 
+                if(parseInt(postTrialBalanceRes.statusCode) > 203){
+                    req.logger.info('PostTrialBalance Service Call Error===>',{"PostTrialBalanceError": postTrialBalanceRes.response});
+                }
                 return res.type("application/json").status(postTrialBalanceRes.statusCode).send({
                     response: postTrialBalanceRes.response
                 });
@@ -410,7 +417,6 @@ app.post('/srv/PostTrialbalanceData', (req, res) => {
 /////----------- post trial balance data function call --------////////////////////
 const postTrialBalanceData = (token, subdomain, reqInput) => {
     var postTrialBalanceRes = {};
-    //console.log("dest_service====>>>",dest_service);
     return axios({
         method: 'GET',
         url: dest_service.uri + '/destination-configuration/v1/destinations/' + sCpiDestName,
@@ -431,11 +437,9 @@ const postTrialBalanceData = (token, subdomain, reqInput) => {
                 'Authorization': `${token.type} ${token.value}`
             }
         }).then(function(response) {
-            //console.log("Headers===>>>",response.headers);
             return axios({
                 method: 'POST',
                 url: oDestination.data.destinationConfiguration.URL + '/http/CPI/PushTrialBalance/V1.0',
-                // withCredentials: true,
                 resolveWithFullResponse: true,
                 headers: {
                     "content-type": "application/json",
@@ -450,6 +454,7 @@ const postTrialBalanceData = (token, subdomain, reqInput) => {
                     "format": "json",
                     "TenantID": subdomain.toUpperCase(),
                     withCredentials: true,
+                    "System": oSystem,
                     'Authorization': `${token.type} ${token.value}`
                 }
             }).then(function(response) {
@@ -464,13 +469,13 @@ const postTrialBalanceData = (token, subdomain, reqInput) => {
                 return postTrialBalanceRes;
             });
         }).catch(function(error) {
-                console.log("postTrialBalanceDataService Call failed===>> error", error);
-                postTrialBalanceRes.statusCode = error.response.status;
-                postTrialBalanceRes.response = error.response.data;
-                return postTrialBalanceRes;
+            console.log("postTrialBalanceDataService Call failed===>> error", error);
+            postTrialBalanceRes.statusCode = error.response.status;
+            postTrialBalanceRes.response = error.response.data;
+            return postTrialBalanceRes;
         });
     }).catch(function(error) {
-        console.log("Failed to authenticate token ====>>>>", error);
+        console.log("Post trial balance Failed to authenticate token ====>>>>", error);
         return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
     });
 }
@@ -482,8 +487,7 @@ app.post('/srv/PostCOAMasterData', (req, res) => {
     const bearerHeader = req.headers['authorization'];
     const expired = tokenValidityCheck(bearerHeader);
     if (expired === true) {
-       // console.log("Checking with expired token=====>>", expired);
-        fetchTokenHandler(subdomain).then(
+        fetchTokenHandler(req.authInfo.getSubdomain(), dest_service.url, dest_service.clientid, dest_service.clientsecret).then(
             (response) => postMasterData(response.data, subdomain, reqInput).then(
                 (postMasterDataRes) => {
                     return res.type("application/json").status(postMasterDataRes.statusCode).send({
@@ -495,6 +499,10 @@ app.post('/srv/PostCOAMasterData', (req, res) => {
     } else {
         postMasterData(token, subdomain, reqInput).then(
             (postMasterDataRes) => {
+                //-------- Adding PostMasterData Service Call Error in Logging service 
+                if(parseInt(postMasterDataRes.statusCode) > 203){
+                    req.logger.info('PostMasterData Service Call Error===>',{"PostMasterDataError": postMasterDataRes.response});
+                }
                 return res.type("application/json").status(postMasterDataRes.statusCode).send({
                     response: postMasterDataRes.response
                 });
@@ -528,7 +536,6 @@ const postMasterData = (token, subdomain, reqInput) => {
             return axios({
                 method: 'POST',
                 url: oDestination.data.destinationConfiguration.URL + '/http/CPI/FetchMasterData/MasterDataUpdate/V9.0',
-                // withCredentials: true,
                 resolveWithFullResponse: true,
                 data: JSON.stringify(reqInput.companycodeData),
                 headers: {
@@ -544,6 +551,7 @@ const postMasterData = (token, subdomain, reqInput) => {
                     "format": "json",
                     "TenantID": subdomain.toUpperCase(),
                     withCredentials: true,
+                    "System": oSystem,
                     'Authorization': `${token.type} ${token.value}`
                 }
             }).then(function(response) {
@@ -559,10 +567,10 @@ const postMasterData = (token, subdomain, reqInput) => {
 
             });
         }).catch(function(error) {
-                console.log("postMasterData Call failed on getting x-csrf-token ===>> error", error);
-                postMasterDataRes.statusCode = error.response.status;
-                postMasterDataRes.response = error.response.data;
-                return postMasterDataRes;
+            console.log("postMasterData Call failed on getting x-csrf-token ===>> error", error);
+            postMasterDataRes.statusCode = error.response.status;
+            postMasterDataRes.response = error.response.data;
+            return postMasterDataRes;
         });
     }).catch(function(error) {
         console.log("Failed to authenticate token ====>>>>", error);
@@ -574,8 +582,8 @@ const postMasterData = (token, subdomain, reqInput) => {
 app.put('/callback/v1.0/tenants/*', function(req, res) {
     let tenantHost = req.body.subscribedSubdomain + '-' + appEnv.app.space_name.toLowerCase().replace(/_/g, '-') + '-' + services.registry.appName.toLowerCase().replace(/_/g, '-');
     let tenantURL = 'https:\/\/' + tenantHost + /\.(.*)/gm.exec(appEnv.app.application_uris[0])[0];
-   // console.log('Subscribe: ', req.body.subscribedSubdomain, req.body.subscribedTenantId, tenantHost, tenantURL);
-   // Veracode - removing consoles
+    // console.log('Subscribe: ', req.body.subscribedSubdomain, req.body.subscribedTenantId, tenantHost, tenantURL);
+    // Veracode - removing consoles
     lib.createRoute(tenantHost, services.registry.appName).then(
         function(result) {
             res.status(200).send(tenantURL);
@@ -606,6 +614,8 @@ app.get('/callback/v1.0/dependencies', function(req, res) {
     let tenantId = req.params.tenantId;
     let dependencies = [{
         'xsappname': services.dest.xsappname
+    }, {
+        'xsappname': services.connectivity.xsappname ///// -- ---- connectivity service added for onPremise---////
     }];
     //console.log('Dependencies: ', tenantId, dependencies);
     // Veracode - removing consoles

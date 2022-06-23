@@ -10,6 +10,7 @@
         "@sap/xssec": "latest",
         "axios": "^0.26.1",
         "body-parser": "latest",
+        "cf-nodejs-logging-support": "^6.13.1",
         "cfenv": "latest",
         "commander": "^9.0.0",
         "express": "latest",

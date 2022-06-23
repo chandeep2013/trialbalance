@@ -476,7 +476,10 @@ const postTrialBalanceData = (token, subdomain, reqInput) => {
         });
     }).catch(function(error) {
         console.log("Post trial balance Failed to authenticate token ====>>>>", error);
-        return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
+        postTrialBalanceRes.statusCode = error.response.status;
+        postTrialBalanceRes.response = error.response.data;
+        return postTrialBalanceRes;
+        //return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
     });
 }
 /////-------------------- Post Master Data to OTP ---------------////////////////////////////
@@ -574,7 +577,10 @@ const postMasterData = (token, subdomain, reqInput) => {
         });
     }).catch(function(error) {
         console.log("Failed to authenticate token ====>>>>", error);
-        return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
+        postMasterDataRes.statusCode = error.response.status;
+        postMasterDataRes.response = error.response.data;
+        return postMasterDataRes;
+        //return res.type("application/json").status(error.response.status).send(JSON.stringify(error.response.statusText));
     });
 }
 ////////--------------------------------- End of changes ----------------------------/////////////////

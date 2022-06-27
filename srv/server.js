@@ -35,7 +35,7 @@ app.use(passport.authenticate('JWT', {
 app.use(bodyParser.json());
 const lib = require('./library');
 
-///// ------ Applicaiton Logging service ------/////
+///// ------ Applicaiton Logging service ------//////
 const log= require('cf-nodejs-logging-support');
 log.setLoggingLevel('info');
 log.registerCustomFields(["Subdomain","UserName","JWT","DestinationConfig","LedgerError","CompanyCodeError","TrialBalanceError","CompanyCodeDetailsError","PostTrialBalanceError","PostMasterDataError"]);

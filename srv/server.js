@@ -80,7 +80,7 @@ app.get('/srv/info', function(req, res) {
         res.status(403).send('Forbidden');
     }
 });
-////--------------- Fetch JWT Token ----------------//////////////
+////--------------- Fetch JWT Token for Destination/Connectivity Service----------------//////////////
 const fetchTokenHandler = async function(subdomain, oauthUrl, oauthClient, oauthSecret) {
     return new Promise((resolve, reject) => {
         const tokenUrl = oauthUrl.split('://')[0] + '://' + subdomain + oauthUrl.slice(oauthUrl.indexOf('.')) + '/oauth/token?grant_type=client_credentials';

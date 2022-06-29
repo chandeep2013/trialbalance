@@ -69,7 +69,7 @@ resources:
     parameters:
       service: saas-registry
       service-plan: application
-      service-name: saastrialbalanceapp-registry
+      service-name: saastrialbalanceapp-registry #saastrialbalanceapp-registry
       config:
         xsappname: ~{saastrialbalanceapp-uaa/XSAPPNAME}
         appName: saastrialbalanceapp #-${space} # added to deploy the code in same region

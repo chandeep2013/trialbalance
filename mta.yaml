@@ -22,7 +22,7 @@ modules:
       - name: saastrialbalanceapp-registry
       - name: saastrialbalanceapp-dest
       - name: saastrialbalanceapp-connectivity
-      - name: tb-logs
+      - name: otp-logs
 
   - name: saastrialbalanceapp
     type: html5
@@ -105,7 +105,7 @@ resources:
     parameters:
       service: connectivity
       service-plan: lite
-  - name: tb-logs
+  - name: otp-logs
     type: org.cloudfoundry.managed-service
     parameters:
       service: application-logs

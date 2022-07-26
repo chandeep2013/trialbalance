@@ -95,7 +95,6 @@ const fetchTokenHandler = async function(subdomain, oauthUrl, oauthClient, oauth
             })
             .catch(error => {
                 console.log("error jwt", error)
-                req.logger.info('JWT Token Error===>',{"JWT": error});
                 reject(error)
             })
     })
@@ -106,7 +105,7 @@ app.get('/srv/getToken', async function(req, res) {
     destJwtToken = await fetchTokenHandler(req.authInfo.getSubdomain(), dest_service.url, dest_service.clientid, dest_service.clientsecret);
     connJwtToken = await fetchTokenHandler(req.authInfo.getSubdomain(), connectivity_service.token_service_url, connectivity_service.clientid, connectivity_service.clientsecret);
     req.logger.info('User==>',{"UserName": req.user}); //-------- Adding User details in Logging service  
-    req.logger.info('Subdomain===>',{"Subdomain": req.authInfo.getSubdomain()});//-------- Adding Subdomain in Logging service  
+    req.logger.info('Subdomain===>',{"Subdomain": req.authInfo.getSubdomain()});//-------- Adding Subdomain in Logging service 
     return res.type("application/json").status(200).send({
         data: destJwtToken
     });

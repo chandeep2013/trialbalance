@@ -41,14 +41,14 @@
 								</fb:FilterGroupItem>
 								<fb:FilterGroupItem id="idPostedDateFrom" visibleInFilterBar="true" groupName="PostedDateFrom" groupTitle="{i18n>postedDateFrom}" name="Posting Date From"
 								label="Posting Date From">
-									<fb:control>
-										<DatePicker id="fromDate" displayFormat="dd/MM/yyyy" valueFormat="yyyy-MM-dd"/>
+									<fb:control><!--displayFormat="dd/MM/yyyy"-->
+										<DatePicker id="fromDate"  valueFormat="yyyy-MM-dd"/>
 									</fb:control>
 								</fb:FilterGroupItem>
 								<fb:FilterGroupItem id="idPostedDateTo" visibleInFilterBar="true" groupName="PostedDateTo" groupTitle="{i18n>postedDateTo}" name="Posting Date To"
 								label="Posting Date To">
 									<fb:control>
-										<DatePicker id="toDate" displayFormat="dd/MM/yyyy" valueFormat="yyyy-MM-dd"/>
+										<DatePicker id="toDate"  valueFormat="yyyy-MM-dd"/>
 									</fb:control>
 								</fb:FilterGroupItem>
 							</fb:filterGroupItems>

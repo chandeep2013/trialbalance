@@ -109,5 +109,5 @@ resources:
     type: org.cloudfoundry.managed-service
     parameters:
       service: application-logs
-      service-plan: lite
+      service-plan: standard
               

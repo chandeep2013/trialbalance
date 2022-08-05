@@ -70,13 +70,13 @@
 								</OverflowToolbar>
 							</ui:extension>
 							<ui:columns>
-								<ui:Column width="11rem">
+								<ui:Column >
 									<Label text="{i18n>companyCode}" />
 									<ui:template>
 										<Text text="{oModelData>CompanyCode} - {oModelData>CompanyCodeCurrency}" wrapping="false" />
 									</ui:template>
 								</ui:Column>
-								<ui:Column width="11rem">
+								<ui:Column >
 									<Label text="{i18n>glAccount}" />
 									<ui:template>
 										<Text text="{oModelData>GLAccount}" wrapping="false" />
@@ -94,25 +94,25 @@
 										<Text text="{oModelData>GLAccountHierarchyName}" wrapping="false" />
 									</ui:template>
 								</ui:Column>
-								<ui:Column width="11rem">
+								<ui:Column >
 									<Label text="{i18n>startingBalance}" />
 									<ui:template>
 										<Text text="{oModelData>StartingBalanceAmtInCoCodeCrcy}" wrapping="false" />
 									</ui:template>
 								</ui:Column>
-								<ui:Column width="11rem">
+								<ui:Column >
 									<Label text="{i18n>debitBalance}" />
 									<ui:template>
 										<Text text="{oModelData>DebitAmountInCoCodeCrcy}" wrapping="false" />
 									</ui:template>
 								</ui:Column>
-								<ui:Column width="11rem">
+								<ui:Column >
 									<Label text="{i18n>creditBalance}" />
 									<ui:template>
 										<Text text="{oModelData>CreditAmountInCoCodeCrcy}" wrapping="false" />
 									</ui:template>
 								</ui:Column>
-								<ui:Column width="11rem">
+								<ui:Column >
 									<Label text="{i18n>endingBalance}" />
 									<ui:template>
 										<Text text="{oModelData>EndingBalanceAmtInCoCodeCrcy}" wrapping="false" />

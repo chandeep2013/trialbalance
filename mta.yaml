@@ -69,10 +69,10 @@ resources:
     parameters:
       service: saas-registry
       service-plan: application
-      service-name: saastrialbalanceapp-registry #saastrialbalanceapp-registry
+      service-name: saastrialbalanceapp-registry 
       config:
         xsappname: ~{saastrialbalanceapp-uaa/XSAPPNAME}
-        appName: saastrialbalanceapp #-${space} # added to deploy the code in same region
+        appName: saastrialbalanceapp 
         displayName: 'Send Trial Balance to ONESOURCE'
         description: 'Select and Send S/4HANA Trial Balance to ONESOURCE'
         category: 'SaaS Multitenant Apps'
@@ -109,5 +109,5 @@ resources:
     type: org.cloudfoundry.managed-service
     parameters:
       service: application-logs
-      service-plan: standard
+      service-plan: lite # standard -prod
               

@@ -50,6 +50,7 @@ const dest_service = xsenv.getServices({
         tag: 'destination'
     }
 }).dest;
+const sUaaCredentials = dest_service.clientid + ':' + dest_service.clientsecret;
 const uaa_service = xsenv.getServices({
     uaa: {
         tag: 'xsuaa'
@@ -86,7 +87,12 @@ const fetchTokenHandler = async function(subdomain, oauthUrl, oauthClient, oauth
         const tokenUrl = oauthUrl.split('://')[0] + '://' + subdomain + oauthUrl.slice(oauthUrl.indexOf('.')) + '/oauth/token?grant_type=client_credentials';
         const config = {
             headers: {
-                Authorization: "Basic " + Buffer.from(oauthClient + ':' + oauthSecret).toString("base64")
+                'Authorization': "Basic " + Buffer.from(oauthClient + ':' + oauthSecret).toString("base64"),
+                'Content-type': 'application/x-www-form-urlencoded'
+            },
+            form: {
+                'client_id': oauthClient,
+                'grant_type': 'client_credentials'
             }
         }
         axios.get(tokenUrl, config)
@@ -101,7 +107,6 @@ const fetchTokenHandler = async function(subdomain, oauthUrl, oauthClient, oauth
 }
 /////------------------- Get Token -------------- /////////////
 app.get('/srv/getToken', async function(req, res) {
-
     destJwtToken = await fetchTokenHandler(req.authInfo.getSubdomain(), dest_service.url, dest_service.clientid, dest_service.clientsecret);
     connJwtToken = await fetchTokenHandler(req.authInfo.getSubdomain(), connectivity_service.token_service_url, connectivity_service.clientid, connectivity_service.clientsecret);
     req.logger.info('User==>',{"UserName": req.user}); //-------- Adding User details in Logging service  
